@@ -1,0 +1,79 @@
+pip install blynk-library gtts opencv-python
+
+# Install necessary libraries
+# pip install blynk-library gtts opencv-python
+
+import cv2
+import BlynkLib
+import time
+from gtts import gTTS
+import os
+
+# Initialize Blynk
+BLYNK_AUTH = "BLYNK_AUTH_TOKEN"
+blynk = BlynkLib.Blynk(BLYNK_AUTH)
+
+# Function to read pH value
+def read_pH():
+    # Simulate reading pH value; replace with actual sensor reading code
+    pH_value = 7.0  # Placeholder value for pH
+    return pH_value
+
+# Function to read turbidity value
+def read_turbidity():
+    # Simulate reading turbidity value; replace with actual sensor reading code
+    turbidity_value = 5.0  # Placeholder value for turbidity
+    return turbidity_value
+
+def provide_voice_guidance(text):
+    """
+    Convert text to speech for voice guidance.
+    Saves the audio as an mp3 and plays it.
+    """
+    tts = gTTS(text=text, lang='en')
+    filename = "guidance.mp3"
+    tts.save(filename)
+    os.system(f"mpg123 {filename}")  # Plays the audio file (works on Linux)
+    os.remove(filename)
+
+def main():
+    # Initialize camera
+    cap = cv2.VideoCapture(0)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Read sensor values
+        pH_value = read_pH()
+        turbidity_value = read_turbidity()
+
+        # Display the readings on the camera feed
+        cv2.putText(frame, f'pH: {pH_value:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        cv2.putText(frame, f'Turbidity: {turbidity_value:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
+        # Provide voice feedback
+        voice_text = f"The pH level is {pH_value:.2f} and turbidity is {turbidity_value:.2f}."
+        print(voice_text)
+        provide_voice_guidance(voice_text)
+
+        # Send data to Blynk app
+        blynk.virtual_write(0, pH_value)  # Send pH value to virtual pin 0
+        blynk.virtual_write(1, turbidity_value)  # Send turbidity value to virtual pin 1
+
+        # Show the frame with readings
+        cv2.imshow("Water Quality Monitoring - Camera Feed", frame)
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        # Run Blynk
+        blynk.run()
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
